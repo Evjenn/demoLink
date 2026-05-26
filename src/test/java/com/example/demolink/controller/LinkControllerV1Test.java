@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.demolink.exception.NotFoundException;
 import com.example.demolink.mapper.LinkMapper;
 import com.example.demolink.model.dto.response.LinkResponse;
 import com.example.demolink.model.entity.LinkEntity;
@@ -47,8 +48,10 @@ class LinkControllerV1Test {
     @MockitoBean
     private UserDetailsService userDetailsService;
 
+    private UserDetailsImpl principalUser;
+
     @BeforeEach
-    void setUp() throws Exception {
+    void setUserForTest() throws Exception {
 
         doAnswer(invocation -> {
             HttpServletRequest request = invocation.getArgument(0);
@@ -58,6 +61,12 @@ class LinkControllerV1Test {
             return null;
         }).when(jwtFilter).doFilter(any(), any(), any());
 
+        principalUser = new UserDetailsImpl(
+                2L,
+                "John",
+                "passworde",
+                List.of(new SimpleGrantedAuthority("ROLE_USER"))
+        );
     }
 
     @Test
@@ -68,23 +77,41 @@ class LinkControllerV1Test {
 
         LinkResponse response = new LinkResponse();
         response.setId(1L);
-        UserDetailsImpl principalUser = new UserDetailsImpl(
-                1L,
-                "john",
-                "password",
-                List.of(new SimpleGrantedAuthority("ROLE_USER"))
-        );
 
         when(linkService.create(any(), anyLong())).thenReturn(entity);
         when(linkMapper.toResponse(entity)).thenReturn(response);
 
         mockMvc.perform(post("/api/V1/links")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                    {"originalLink":"https://github.com"}
-                    """).with(user(principalUser))
+                        .content("{\"originalLink\":\"https://github.com\"}")
+                    .with(user(principalUser))
                         .with(csrf()))
                 .andDo(print())
                 .andExpect(status().isCreated());
+    }
+
+    @Test
+    void shouldReturn404WhenLinkNotFound() throws Exception {
+
+        when(linkService.create(any(), anyLong())).thenThrow(new NotFoundException("Link not found"));
+
+        mockMvc.perform(post("/api/V1/links")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"originalLink\":\"https://github.com\"}")
+                        .with(user(principalUser))
+                        .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldReturn400WhenOriginalLinkIsEmpty() throws Exception {
+
+        mockMvc.perform(post("/api/V1/links")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"originalLink\":\"\"}")
+                        .with(user(principalUser))
+                        .with(csrf()))
+                .andExpect(status().isBadRequest());
     }
 }

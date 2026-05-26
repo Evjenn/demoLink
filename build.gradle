@@ -60,10 +60,19 @@ tasks.named('test') {
 
 jacocoTestReport {
 	dependsOn test
-
 	reports {
-		html.required = true
 		xml.required = true
-		csv.required = false
+		html.required = true
+	}
+	afterEvaluate {
+		classDirectories.setFrom(files(classDirectories.files.collect {
+			fileTree(dir: it, exclude: [
+					'com/example/demolink/mapper/**',
+					'com/example/demolink/model/dto/**',
+					'com/example/demolink/config/**',
+					'com/example/demolink/security/config/**',
+					'com/example/demolink/DemoLinkApplication.*'
+			])
+		}))
 	}
 }

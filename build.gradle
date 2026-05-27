@@ -76,3 +76,30 @@ jacocoTestReport {
 		}))
 	}
 }
+
+jacocoTestCoverageVerification {
+	afterEvaluate {
+		classDirectories.setFrom(files(classDirectories.files.collect {
+			fileTree(dir: it, exclude: [
+					'com/example/demolink/mapper/**',
+					'com/example/demolink/model/dto/**',
+					'com/example/demolink/config/**',
+					'com/example/demolink/security/config/**',
+					'com/example/demolink/DemoLinkApplication.*'
+			])
+		}))
+	}
+	violationRules {
+		rule {
+			element = 'BUNDLE'
+			limit {
+				counter = 'INSTRUCTION'
+				value = 'COVEREDRATIO'
+				minimum = 0.80
+			}
+		}
+	}
+}
+
+check.dependsOn jacocoTestCoverageVerification
+jacocoTestCoverageVerification.dependsOn jacocoTestReport

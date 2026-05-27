@@ -21,17 +21,17 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers
 class LinkSecurityIntegrationTest {
 
-    @BeforeAll
-    static void setup() {
-        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-    }
+    @Container
+    private static final PostgreSQLContainer postgres =
+            new PostgreSQLContainer("postgres:16");
 
     @Autowired
     private MockMvc mockMvc;
 
-    @Container
-    static PostgreSQLContainer postgres =
-            new PostgreSQLContainer("postgres:16");
+    @BeforeAll
+    static void setup() {
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+    }
 
     @DynamicPropertySource
     static void configure(DynamicPropertyRegistry registry) {

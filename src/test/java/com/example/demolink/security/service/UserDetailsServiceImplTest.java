@@ -28,15 +28,14 @@ class UserDetailsServiceImplTest {
 
     @Test
     void shouldLoadUserByUsernameWhenUserExists() {
-        // 1. Тестуємо успішний сценарій пошуку користувача
+
         UserEntity userEntity = new UserEntity();
         userEntity.setId(1L);
         userEntity.setUsername("john");
         userEntity.setPassword("encoded_password");
-        userEntity.setRole(Role.USER); // Вкажіть вашу дефолтну роль
+        userEntity.setRole(Role.USER);
 
         when(userRepository.findByUsername("john")).thenReturn(Optional.of(userEntity));
-
         UserDetails result = userDetailsService.loadUserByUsername("john");
 
         assertNotNull(result);
@@ -45,9 +44,8 @@ class UserDetailsServiceImplTest {
 
     @Test
     void shouldThrowExceptionWhenUserDoesNotExist() {
-        // 2. Тестуємо бранч помилки (гілка else), що дасть найбільше відсотків!
-        when(userRepository.findByUsername("unknown")).thenReturn(Optional.empty());
 
+        when(userRepository.findByUsername("unknown")).thenReturn(Optional.empty());
         assertThrows(UsernameNotFoundException.class, () -> {
             userDetailsService.loadUserByUsername("unknown");
         });

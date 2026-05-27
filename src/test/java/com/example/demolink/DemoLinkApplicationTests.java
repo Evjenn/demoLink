@@ -16,7 +16,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 class DemoLinkApplicationTests {
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:16-alpine");
+    private static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:16-alpine");
 
     //build/reports/jacoco/test/html/index.html
     @BeforeAll

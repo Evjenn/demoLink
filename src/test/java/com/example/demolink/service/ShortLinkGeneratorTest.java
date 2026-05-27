@@ -12,36 +12,31 @@ class ShortLinkGeneratorTest {
 
     @BeforeEach
     void setUp() {
-        // Просто створюємо екземпляр класу через new, без допомоги Spring
         generator = new ShortLinkGenerator();
     }
 
     @Test
     void shouldGenerateCorrectLength() {
-        // When
+
         String result = generator.generate();
-        // Then
         assertThat(result)
                 .isNotNull()
-                .hasSize(8); // Перевіряємо, що довжина строго 8 символів
+                .hasSize(8);
     }
 
     @Test
     void shouldContainOnlyAllowedCharacters() {
-        // Given
-        String allowedCharsRegex = "^[a-zA-Z0-9]+$"; // Регулярний вираз для перевірки алфавіту
-        // When
+
+        String allowedCharsRegex = "^[a-zA-Z0-9]+$";
         String result = generator.generate();
-        // Then
-        assertThat(result).matches(allowedCharsRegex); // Перевіряємо, що немає зайвих символів
+        assertThat(result).matches(allowedCharsRegex);
     }
 
     @Test
     void shouldGenerateUniqueStrings() {
-        // When: Генеруємо два посилання поспіль
+
         String first = generator.generate();
         String second = generator.generate();
-        // Then: Оскільки SecureRandom рандомний, вони мають бути унікальними
         assertThat(first).isNotEqualTo(second);
     }
 }

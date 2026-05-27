@@ -63,6 +63,19 @@ public class LinkControllerV1 {
         );
     }
 
+    @GetMapping("/active")
+    @Operation(summary = "Get all active links of the current user")
+    public ResponseEntity<List<LinkResponse>> getUserActiveLinks(
+            @AuthenticationPrincipal UserDetailsImpl principalUser) {
+
+        List<LinkEntity> activeLinks = linkService.getUserActiveLinks(principalUser.getId());
+        List<LinkResponse> response = activeLinks.stream()
+                .map(linkMapper::toResponse)
+                .toList();
+
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping
     @Operation(summary = "Get all links by user id.")
     @SecurityRequirement(name = "BearerAuth")
@@ -78,12 +91,11 @@ public class LinkControllerV1 {
     @Operation(summary = "Get link follows by link id.")
     @SecurityRequirement(name = "BearerAuth")
     public ResponseEntity<LinkStatsResponse> getStats(
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
-        LinkEntity link = linkService.getById(id);
-        return ResponseEntity.ok(
-                linkMapper.toStatsResponse(link)
-        );
+        LinkEntity link = linkService.getStats(id, userDetails.getId());
+        return ResponseEntity.ok(linkMapper.toStatsResponse(link));
     }
 
     @PutMapping("/{id}")
@@ -91,21 +103,21 @@ public class LinkControllerV1 {
     @SecurityRequirement(name = "BearerAuth")
     public ResponseEntity<LinkResponse> update(
             @PathVariable Long id,
-            @Valid @RequestBody UpdateLinkRequest request) {
+            @Valid @RequestBody UpdateLinkRequest request,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
-        return ResponseEntity.ok(
-                linkMapper.toResponse(
-                        linkService.update(id, request)
-                )
-        );
+        LinkEntity link = linkService.update(id, request, userDetails.getId());
+        return ResponseEntity.ok(linkMapper.toResponse(link));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete link.")
     @SecurityRequirement(name = "BearerAuth")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
-        linkService.deleteById(id);
+        linkService.deleteById(id, userDetails.getId());
         return ResponseEntity.noContent().build();
     }
 

@@ -13,6 +13,8 @@ public class LinkResponse {
     private String shortLink;
     private String shortUrl;
     private Long linkFollows;
+    private LocalDateTime createdAt;
     private LocalDateTime expiresAt;
     private boolean active;
+    private UserResponse user;
 }

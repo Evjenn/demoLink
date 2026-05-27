@@ -1,6 +1,6 @@
 package com.example.demolink.service.impl;
 
-import com.example.demolink.exception.NotFoundException;
+import com.example.demolink.exception.BaseException;
 import com.example.demolink.model.dto.request.UpdateLinkRequest;
 import com.example.demolink.model.entity.LinkEntity;
 import com.example.demolink.model.entity.UserEntity;
@@ -8,9 +8,12 @@ import com.example.demolink.repository.LinkRepository;
 import com.example.demolink.repository.UserRepository;
 import com.example.demolink.service.LinkService;
 import com.example.demolink.service.generator.ShortLinkGenerator;
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class LinkServiceImpl implements LinkService {
@@ -30,20 +33,41 @@ public class LinkServiceImpl implements LinkService {
     @Override
     public LinkEntity create(LinkEntity link, Long id) {
 
+        try {
+            if (link.getOriginalLink() == null || link.getOriginalLink().isBlank()) {
+                throw new BaseException("Original URL cannot be empty", HttpStatus.BAD_REQUEST);
+            }
+            new URI(link.getOriginalLink()).toURL();
+        } catch (Exception e) {
+            throw new BaseException("The provided string '"
+                    + link.getOriginalLink() + "' is not a valid URL", HttpStatus.BAD_REQUEST);
+        }
         UserEntity user = userRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+                .orElseThrow(() -> new BaseException("User not found", HttpStatus.NOT_FOUND));
         if (link.getExpiresAt() == null) {
             link.setExpiresAt(LocalDateTime.now().plusDays(10));
         }
-        link.setShortLink(shortLinkGenerator.generate());
         link.setUser(user);
-        return linkRepository.save(link);
+
+        String code = shortLinkGenerator.generate();
+        if (linkRepository.existsByShortLink(code)) {
+            code = shortLinkGenerator.generate();
+        }
+        link.setShortLink(code);
+
+        try {
+            return linkRepository.save(link);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new BaseException("Short link collision occurred. Please try again.",
+                    HttpStatus.CONFLICT);
+        }
     }
 
     @Override
-    public LinkEntity update(Long id, UpdateLinkRequest request) {
+    public LinkEntity update(Long id, UpdateLinkRequest request, Long currentUserId) {
 
         LinkEntity updatedLink = getById(id);
+        validateLinkOwnership(updatedLink, currentUserId);
         if (request.getExpiresAt() != null) {
             updatedLink.setExpiresAt(request.getExpiresAt());
         }
@@ -55,7 +79,7 @@ public class LinkServiceImpl implements LinkService {
     @Override
     public LinkEntity getById(Long id) {
         return linkRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Link not found"));
+                .orElseThrow(() -> new BaseException("Link not found", HttpStatus.NOT_FOUND));
     }
 
     @Override
@@ -69,24 +93,42 @@ public class LinkServiceImpl implements LinkService {
     }
 
     @Override
+    @Transactional
     public String getOriginalLink(String shortLink) {
 
         LinkEntity link = linkRepository.findByShortLink(shortLink)
-                .orElseThrow(() -> new NotFoundException("Link not found"));
+                .orElseThrow(() -> new BaseException("Link not found", HttpStatus.NOT_FOUND));
         if (!link.isActive()) {
-            throw new RuntimeException("Link inactive");
+            throw new BaseException("Link is inactive", HttpStatus.BAD_REQUEST);
         }
         if (link.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Link expired");
+            throw new BaseException("Link has expired", HttpStatus.BAD_REQUEST);
         }
 
-        link.setLinkFollows(link.getLinkFollows() + 1);
-        linkRepository.save(link);
+        linkRepository.incrementLinkFollows(link.getId());
         return link.getOriginalLink();
     }
 
     @Override
-    public void deleteById(Long id) {
-        linkRepository.deleteById(id);
+    public void deleteById(Long id, Long currentUserId) {
+
+        LinkEntity link = getById(id);
+        validateLinkOwnership(link, currentUserId);
+        linkRepository.delete(link);
+    }
+
+    @Override
+    public LinkEntity getStats(Long id, Long currentUserId) {
+
+        LinkEntity link = getById(id);
+        validateLinkOwnership(link, currentUserId);
+        return link;
+    }
+
+    private void validateLinkOwnership(LinkEntity link, Long currentUserId) {
+        if (link.getUser() == null || !link.getUser().getId().equals(currentUserId)) {
+            throw new BaseException("You do not have permission to manage this link",
+                    HttpStatus.FORBIDDEN);
+        }
     }
 }

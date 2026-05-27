@@ -8,7 +8,7 @@ public interface LinkService {
 
     LinkEntity create(LinkEntity link, Long id);
 
-    LinkEntity update(Long id, UpdateLinkRequest request);
+    LinkEntity update(Long id, UpdateLinkRequest request, Long currentUserId);
 
     LinkEntity getById(Long id);
 
@@ -18,5 +18,7 @@ public interface LinkService {
 
     String getOriginalLink(String shortLink);
 
-    void deleteById(Long id);
+    void deleteById(Long id, Long currentUserId);
+
+    LinkEntity getStats(Long id, Long currentUserId);
 }

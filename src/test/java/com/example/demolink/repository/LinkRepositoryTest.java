@@ -21,17 +21,22 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers
 class LinkRepositoryTest {
 
-    @BeforeAll
-    static void setup() {
-        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-    }
-
     @Container
-    static PostgreSQLContainer postgres =
+    private static final PostgreSQLContainer postgres =
             new PostgreSQLContainer("postgres:16")
                     .withDatabaseName("test-db")
                     .withUsername("test")
                     .withPassword("test");
+
+    @Autowired
+    private LinkRepository linkRepository;
+    @Autowired
+    private UserRepository userRepository;
+
+    @BeforeAll
+    static void setup() {
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+    }
 
     @DynamicPropertySource
     static void configureProperties(
@@ -52,11 +57,6 @@ class LinkRepositoryTest {
                 postgres::getPassword
         );
     }
-
-    @Autowired
-    private LinkRepository linkRepository;
-    @Autowired
-    private UserRepository userRepository;
 
     @Test
     void shouldSaveLink() {

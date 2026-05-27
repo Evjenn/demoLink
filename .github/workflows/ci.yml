@@ -32,6 +32,7 @@ jobs:
           DB_URL: jdbc:postgresql://localhost:5432/link_db
           DB_USERNAME: john
           DB_PASSWORD: secret_password
+          APP_BASE_URL: https://test-server.com
 
       - name: Upload Test Report
         uses: actions/upload-artifact@v4

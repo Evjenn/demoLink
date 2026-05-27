@@ -1,14 +1,14 @@
 package com.example.demolink.controller;
 
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-
+import com.example.demolink.exception.BaseException;
 import com.example.demolink.model.dto.response.AuthResponse;
 import com.example.demolink.security.config.AuthEntryPointJwt;
 import com.example.demolink.security.config.SecurityConfig;
@@ -25,8 +25,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -67,11 +67,11 @@ class AuthControllerV1Test {
         mockMvc.perform(post("/api/V1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                    {
-                        "username": "newuser",
-                        "password": "securePassword123"
-                    }
-                    """))
+                                {
+                                    "username": "newuser",
+                                    "password": "securePassword123"
+                                }
+                                """))
                 .andExpect(status().isCreated());
     }
 
@@ -81,20 +81,19 @@ class AuthControllerV1Test {
         mockMvc.perform(post("/api/V1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                    {
-                        "username": "",
-                        "password": ""
-                    }
-                    """))
+                                {
+                                    "username": "",
+                                    "password": ""
+                                }
+                                """))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void shouldLoginSuccessfully() throws Exception {
-        // Given
+
         when(authService.login(any())).thenReturn(new AuthResponse("mocked-jwt-token"));
 
-        // When & Then
         mockMvc.perform(post("/api/V1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"john\",\"password\":\"password\"}")
@@ -115,12 +114,14 @@ class AuthControllerV1Test {
     @Test
     void shouldReturn401WhenBadCredentials() throws Exception {
 
-        when(authService.login(any())).thenThrow(new BadCredentialsException("Invalid username or password"));
-
+        when(authService.login(any()))
+                .thenThrow(new BaseException("Invalid username or password",
+                        HttpStatus.UNAUTHORIZED));
         mockMvc.perform(post("/api/V1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"john\",\"password\":\"wrong_password\"}")
                         .with(csrf()))
+                .andDo(print())
                 .andExpect(status().isUnauthorized());
     }
 }
